@@ -3,6 +3,27 @@ import streamlit as st
 import random
 import plotly.graph_objects as go
 
+st.markdown("""
+<style>
+
+/* 最上方 Header */
+header[data-testid="stHeader"]{
+    background: rgba(0,0,0,0) !important;
+}
+
+/* Header底下那條 */
+[data-testid="stToolbar"]{
+    background: rgba(0,0,0,0) !important;
+}
+
+/* 主內容往上推 */
+.block-container{
+    padding-top: 1rem;
+}
+
+</style>
+""", unsafe_allow_html=True)
+
 st.set_page_config(
     page_title="Life 100：新泰度生存指南",
     page_icon="🌳",
