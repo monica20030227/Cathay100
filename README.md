@@ -1,12 +1,5 @@
 # Life 100：新泰度生存指南
 
-## 執行方式
-
-```bash
-pip install -r requirements.txt
-streamlit run app.py
-```
-
 ## 頁面功能
 - 首頁：分成「人生遊戲模式」、「保險百科模式」、「遊戲說明」
 - 遊戲：百歲天賦測驗 → 每 5 年推進 → 每 10 年人生規劃室 → 結算
