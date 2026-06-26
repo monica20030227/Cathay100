@@ -75,27 +75,9 @@ header[data-testid="stHeader"], [data-testid="stToolbar"] { background: rgba(0,0
     border: 1px solid rgba(74, 222, 128, .35);
     box-shadow: inset 0 0 30px rgba(74, 222, 128, .08), 0 14px 42px rgba(0,0,0,.28);
     margin-bottom: 14px;
-    min-height: 240px;
+    min-height: 170px;
 }
 .rpg-card:hover { transform: translateY(-4px); }
-
-.recommend-card {
-    padding: 22px;
-    border-radius: 24px;
-    background: linear-gradient(135deg, rgba(34,197,94,.26), rgba(15,23,42,.76));
-    border: 1px solid rgba(250,204,21,.38);
-    box-shadow: 0 18px 55px rgba(0,0,0,.28);
-    margin-bottom: 14px;
-    min-height: 310px;
-}
-
-.compare-card {
-    padding: 18px;
-    border-radius: 22px;
-    background: rgba(15,23,42,.62);
-    border: 1px solid rgba(255,255,255,.14);
-    margin-bottom: 12px;
-}
 
 .status-label { font-size: 15px; color: #bbf7d0; font-weight: 700; }
 .big-number { font-size: 38px; font-weight: 900; }
@@ -119,20 +101,8 @@ header[data-testid="stHeader"], [data-testid="stToolbar"] { background: rgba(0,0
     font-weight: 700;
     margin: 4px 6px 4px 0;
 }
-.warn-badge {
-    display: inline-block;
-    padding: 7px 12px;
-    border-radius: 999px;
-    background: rgba(250, 204, 21, .16);
-    border: 1px solid rgba(250, 204, 21, .38);
-    color: #fef3c7;
-    font-weight: 800;
-    margin: 4px 6px 4px 0;
-}
 .timeline { height: 12px; border-radius: 99px; background: rgba(255,255,255,.12); overflow: hidden; margin: 14px 0 8px 0; }
 .timeline-fill { height: 100%; border-radius: 99px; background: linear-gradient(90deg, #22c55e, #84cc16, #facc15); box-shadow: 0 0 24px rgba(34,197,94,.65); }
-.cover-bar { height: 13px; border-radius: 999px; background: rgba(255,255,255,.12); overflow: hidden; margin: 8px 0 16px 0; }
-.cover-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, #22c55e, #84cc16, #facc15); }
 .stButton > button {
     border-radius: 999px !important;
     border: 1px solid rgba(74, 222, 128, .5) !important;
@@ -147,6 +117,10 @@ header[data-testid="stHeader"], [data-testid="stToolbar"] { background: rgba(0,0
 [data-testid="stMetricLabel"] { color: #bbf7d0; font-weight: 700; }
 a { color: #86efac !important; font-weight: 800; text-decoration: none; }
 hr { border-color: rgba(255,255,255,.12); }
+.small-text { color:#d1d5db; font-size:14px; line-height:1.7; }
+.effect-box { padding: 12px 14px; border-radius: 16px; background: rgba(74,222,128,.12); border: 1px solid rgba(74,222,128,.28); margin-top: 10px; color:#ecfdf5; }
+.product-title { font-size:22px; font-weight:900; }
+.product-subtitle { color:#bbf7d0; font-weight:700; margin: 6px 0; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -362,17 +336,6 @@ CATEGORIES = {
     "理賠服務": ["CVX 泰好保", "理賠聯盟鏈", "AI 理賠顧問"],
 }
 
-EVENT_IMPACT = {
-    "住院手術": {"health": -20, "mind": -8, "wealth": -22},
-    "重大疾病風險": {"health": -28, "mind": -12, "wealth": -25},
-    "癌症治療": {"health": -35, "mind": -16, "wealth": -32},
-    "長照需求出現": {"health": -32, "mind": -18, "wealth": -34},
-    "失智照護": {"health": -20, "mind": -25, "wealth": -30},
-    "股市黑天鵝": {"health": -3, "mind": -12, "wealth": -28},
-    "家庭責任增加": {"health": -8, "mind": -16, "wealth": -18},
-    "退休焦慮": {"health": -8, "mind": -22, "wealth": -16},
-}
-
 # =========================
 # 初始化
 # =========================
@@ -424,21 +387,6 @@ def stat_card(icon, label, value, desc):
     """, unsafe_allow_html=True)
     st.progress(value / 100)
 
-def risk_level(value):
-    if value < 45:
-        return "高風險"
-    if value < 65:
-        return "中風險"
-    return "穩定"
-
-def weakest_dimension():
-    scores = {
-        "健康風險": st.session_state.health,
-        "心理壓力": st.session_state.mind,
-        "財務風險": st.session_state.wealth,
-    }
-    return min(scores, key=scores.get)
-
 def risk_chart():
     labels = ["健康風險", "心理壓力", "財務風險"]
     values = [100 - st.session_state.health, 100 - st.session_state.mind, 100 - st.session_state.wealth]
@@ -463,259 +411,243 @@ def age_timeline():
     </div>
     """, unsafe_allow_html=True)
 
+def recommend_items():
+    rec = []
+    if st.session_state.health < 65:
+        rec += ["實支實付醫療險", "重大傷病險", "FitBack 健康吧"]
+    if st.session_state.mind < 65:
+        rec += ["CVX 泰好保", "理賠聯盟鏈", "AI 理賠顧問"]
+    if st.session_state.wealth < 65:
+        rec += ["國泰智能投資", "年金險", "定期壽險"]
+    if st.session_state.age >= 60:
+        rec += ["長期照顧險", "年金險"]
+    if not rec:
+        rec = ["FitBack 健康吧", "實支實付醫療險", "國泰智能投資"]
+    out = []
+    for r in rec:
+        if r not in out and r not in st.session_state.game_items:
+            out.append(r)
+    return out[:3]
+
+
+# =========================
+# AI 人生保障顧問功能
+# =========================
+def get_status_level(value):
+    if value < 45:
+        return "高風險"
+    if value < 65:
+        return "需補強"
+    if value < 80:
+        return "普通"
+    return "穩定"
+
+def strongest_risk_label():
+    risks = {
+        "健康風險": 100 - st.session_state.health,
+        "心理壓力": 100 - st.session_state.mind,
+        "財務風險": 100 - st.session_state.wealth,
+    }
+    return max(risks, key=risks.get)
+
+def product_effect_preview(name):
+    """回傳此保險在典型事件中的未投保/投保後差異，用於視覺化說服玩家。"""
+    scenarios = {
+        "實支實付醫療險": ("住院手術事件", -20, -8, -22),
+        "住院日額醫療險": ("住院事件", -18, -8, -20),
+        "手術醫療險": ("手術事件", -20, -8, -22),
+        "重大傷病險": ("重大疾病風險", -28, -12, -25),
+        "癌症險": ("癌症治療事件", -35, -16, -32),
+        "長期照顧險": ("長照需求事件", -32, -18, -34),
+        "失智險": ("失智照護事件", -20, -25, -30),
+        "年金險": ("退休焦慮事件", -8, -22, -16),
+        "定期壽險": ("家庭責任增加", -8, -16, -18),
+        "投資型保單": ("市場震盪事件", -3, -12, -28),
+        "國泰智能投資": ("市場黑天鵝事件", -3, -12, -28),
+        "FitBack 健康吧": ("過勞與健康下滑", -18, -16, -5),
+        "小樹點": ("日常健康回饋", 0, 0, 0),
+        "CVX 泰好保": ("疾病理賠事件", -20, -18, -18),
+        "理賠聯盟鏈": ("疾病理賠事件", -20, -18, -18),
+        "AI 理賠顧問": ("重大事件決策壓力", -15, -20, -15),
+    }
+    event_name, dh, dm, dw = scenarios.get(name, ("人生風險事件", -15, -10, -15))
+    current_items = list(st.session_state.game_items)
+    without_h = clamp(st.session_state.health + dh)
+    without_m = clamp(st.session_state.mind + dm)
+    without_w = clamp(st.session_state.wealth + dw)
+
+    st.session_state.game_items = list(dict.fromkeys(current_items + [name]))
+    dh2, dm2, dw2 = apply_item_effects(event_name, dh, dm, dw)
+    with_h = clamp(st.session_state.health + dh2)
+    with_m = clamp(st.session_state.mind + dm2)
+    with_w = clamp(st.session_state.wealth + dw2)
+    st.session_state.game_items = current_items
+    return event_name, (without_h, without_m, without_w), (with_h, with_m, with_w)
+
+def score_insurance_item(name):
+    data = INSURANCE_DETAIL.get(name, {})
+    score = 45
+    reasons = []
+    category = data.get("category", "")
+    last_event = st.session_state.get("last_event") or "尚未發生重大事件"
+
+    if st.session_state.health < 65 and category in ["健康醫療", "健康促進", "長照退休"]:
+        score += 18
+        reasons.append("Health 偏低，優先補強健康與醫療防線")
+    if st.session_state.mind < 65 and category in ["理賠服務", "健康促進", "財務保障"]:
+        score += 14
+        reasons.append("Mind 偏低，適合降低理賠、照護或家庭壓力")
+    if st.session_state.wealth < 65 and category in ["健康醫療", "財務投資", "財務保障", "長照退休"]:
+        score += 18
+        reasons.append("Wealth 偏低，需要避免一次性支出造成財務斷崖")
+    if st.session_state.age >= 60 and name in ["長期照顧險", "失智險", "年金險"]:
+        score += 22
+        reasons.append("已接近或進入退休階段，長照與退休現金流重要性提高")
+    if st.session_state.age < 45 and name in ["實支實付醫療險", "重大傷病險", "定期壽險", "FitBack 健康吧"]:
+        score += 8
+        reasons.append("年輕階段適合先建立基本保障盤與健康管理習慣")
+
+    event_keywords = {
+        "實支實付醫療險": ["住院", "手術", "醫療"],
+        "住院日額醫療險": ["住院"],
+        "手術醫療險": ["手術"],
+        "重大傷病險": ["重大疾病", "重大傷病"],
+        "癌症險": ["癌症"],
+        "長期照顧險": ["長照", "失能", "照護"],
+        "失智險": ["失智", "照護"],
+        "年金險": ["退休"],
+        "定期壽險": ["家庭", "親人"],
+        "投資型保單": ["股市", "市場", "投資", "資產"],
+        "國泰智能投資": ["股市", "市場", "投資", "資產"],
+        "FitBack 健康吧": ["過勞", "健康"],
+        "CVX 泰好保": ["疾病", "醫療", "住院", "理賠"],
+        "理賠聯盟鏈": ["疾病", "醫療", "住院", "理賠"],
+        "AI 理賠顧問": ["疾病", "醫療", "住院", "重大", "理賠"],
+    }
+    if any(k in last_event for k in event_keywords.get(name, [])):
+        score += 25
+        reasons.append("與最近發生的人生事件高度相關")
+    if name in st.session_state.game_items:
+        score = 0
+        reasons = ["已配置，不重複推薦"]
+    if not reasons:
+        reasons.append("可作為長期人生規劃的基礎保障配置")
+    return min(99, score), reasons
+
+def ai_recommendation_rank(limit=3):
+    candidates = []
+    for name in SHOP_ITEMS:
+        if name in st.session_state.game_items:
+            continue
+        score, reasons = score_insurance_item(name)
+        candidates.append((score, name, reasons))
+    candidates.sort(key=lambda x: x[0], reverse=True)
+    return candidates[:limit]
+
 def coverage_scores():
     items = st.session_state.game_items
-    health_items = ["實支實付醫療險", "住院日額醫療險", "手術醫療險", "重大傷病險", "癌症險", "FitBack 健康吧"]
-    retirement_items = ["長期照顧險", "失智險", "年金險"]
-    finance_items = ["定期壽險", "投資型保單", "國泰智能投資", "年金險"]
-    claim_items = ["CVX 泰好保", "理賠聯盟鏈", "AI 理賠顧問"]
+    def has_any(names):
+        return any(n in items for n in names)
+    health = 10
+    if has_any(["實支實付醫療險", "住院日額醫療險", "手術醫療險"]): health += 35
+    if has_any(["重大傷病險", "癌症險"]): health += 30
+    if has_any(["FitBack 健康吧"]): health += 20
+    finance = 10
+    if has_any(["定期壽險"]): finance += 25
+    if has_any(["國泰智能投資", "投資型保單"]): finance += 30
+    if has_any(["重大傷病險", "實支實付醫療險"]): finance += 20
+    retirement = 10
+    if has_any(["年金險"]): retirement += 35
+    if has_any(["長期照顧險", "失智險"]): retirement += 40
+    if st.session_state.age < 50: retirement += 5
+    claim = 10
+    if has_any(["CVX 泰好保"]): claim += 25
+    if has_any(["理賠聯盟鏈"]): claim += 30
+    if has_any(["AI 理賠顧問"]): claim += 25
     return {
-        "健康醫療保障": min(100, sum(1 for x in health_items if x in items) * 18),
-        "退休長照保障": min(100, sum(1 for x in retirement_items if x in items) * 34),
-        "財務韌性保障": min(100, sum(1 for x in finance_items if x in items) * 25),
-        "理賠便利保障": min(100, sum(1 for x in claim_items if x in items) * 34),
+        "健康醫療保障": clamp(health),
+        "財務安全保障": clamp(finance),
+        "退休長照保障": clamp(retirement),
+        "理賠便利保障": clamp(claim),
     }
 
 def render_coverage_dashboard():
-    st.markdown('<div class="glass-card"><h2>🧩 保障覆蓋率</h2><p>系統根據你目前已配置的保障，估算四大保障面向的完整度。</p>', unsafe_allow_html=True)
     scores = coverage_scores()
-    for label, score in scores.items():
-        st.markdown(f"""
-        <div style="display:flex; justify-content:space-between; color:#e5e7eb; font-weight:800;">
-            <span>{label}</span><span>{score}%</span>
-        </div>
-        <div class="cover-bar"><div class="cover-fill" style="width:{score}%"></div></div>
-        """, unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown('<div class="glass-card"><h3>📊 保障覆蓋率</h3><p>從已配置保障推估目前人生防護網完整度。</p></div>', unsafe_allow_html=True)
+    cols = st.columns(4)
+    for i, (label, value) in enumerate(scores.items()):
+        with cols[i]:
+            st.metric(label, f"{value}%")
+            st.progress(value / 100)
 
-def recommendation_reason(item):
-    reasons = []
-    score = 40
-    age = st.session_state.age
-    h, m, w = st.session_state.health, st.session_state.mind, st.session_state.wealth
-    last_event = st.session_state.last_event or "尚未發生重大事件"
-    goal = st.session_state.goal
-
-    if item in ["實支實付醫療險", "住院日額醫療險", "手術醫療險", "重大傷病險", "癌症險"]:
-        if h < 65:
-            score += 22; reasons.append("Health 低於 65，醫療事件承受力較弱")
-        if w < 65:
-            score += 14; reasons.append("Wealth 偏低，突發醫療費可能造成財務壓力")
-        if any(x in last_event for x in ["住院", "手術", "疾病", "癌症", "醫療"]):
-            score += 20; reasons.append(f"近期事件「{last_event}」與醫療風險高度相關")
-    if item == "實支實付醫療險":
-        score += 12; reasons.append("可作為基礎醫療防線，優先補足住院與手術支出")
-    if item == "重大傷病險":
-        if h < 70:
-            score += 13; reasons.append("重大疾病通常伴隨一次性大額支出，需要一次金支援")
-    if item == "癌症險":
-        if age >= 45 or h < 60:
-            score += 12; reasons.append("年齡或健康狀態使長期治療風險更值得提前準備")
-    if item == "FitBack 健康吧":
-        if h < 75:
-            score += 18; reasons.append("可透過健康任務持續補回血量，屬於事前預防型配置")
-
-    if item in ["CVX 泰好保", "理賠聯盟鏈", "AI 理賠顧問"]:
-        if m < 65:
-            score += 22; reasons.append("Mind 低於 65，代表壓力與流程負擔需要被降低")
-        if any(x in last_event for x in ["疾病", "醫療", "住院", "手術", "癌症", "理賠"]):
-            score += 18; reasons.append("近期可能面對理賠流程，數位服務可降低心理壓力")
-        if item == "AI 理賠顧問":
-            score += 10; reasons.append("可在事件後給出下一步保障與理賠方向")
-
-    if item in ["國泰智能投資", "投資型保單", "年金險", "定期壽險"]:
-        if w < 65:
-            score += 22; reasons.append("Wealth 低於 65，財務韌性是目前主要缺口")
-        if goal in ["買房", "財富自由", "照顧家人"]:
-            score += 10; reasons.append(f"你的目標是「{goal}」，需要更穩定的財務規劃")
-        if any(x in last_event for x in ["股市", "市場", "投資", "退休", "家庭"]):
-            score += 16; reasons.append(f"近期事件「{last_event}」與財務風險相關")
-    if item == "年金險":
-        if age >= 55:
-            score += 22; reasons.append("已接近退休階段，應開始建立退休現金流")
-        elif goal == "健康退休":
-            score += 12; reasons.append("你的目標是健康退休，年金可支援老後生活費")
-    if item == "定期壽險":
-        if goal == "照顧家人":
-            score += 20; reasons.append("你的人生目標包含照顧家人，適合補足家庭責任保障")
-    if item == "長期照顧險":
-        if age >= 55:
-            score += 25; reasons.append("年齡提高後，長照與失能風險需要提前規劃")
-        if h < 65:
-            score += 12; reasons.append("Health 偏低，未來照護需求風險較高")
-    if item == "失智險":
-        if age >= 65:
-            score += 24; reasons.append("已進入高齡階段，認知退化與照護風險值得注意")
-
-    if item in st.session_state.game_items:
-        score = 0
-        reasons = ["你已經配置過這項保障，因此不列為本回合優先推薦"]
-
-    if len(reasons) == 0:
-        reasons.append("可補足目前人生配置中的部分風險缺口")
-
-    return min(99, score), reasons[:4]
-
-def ai_recommendations(top_n=3):
-    candidates = [x for x in SHOP_ITEMS if x not in st.session_state.game_items]
-    scored = []
-    for item in candidates:
-        score, reasons = recommendation_reason(item)
-        scored.append({"item": item, "score": score, "reasons": reasons})
-    scored.sort(key=lambda x: x["score"], reverse=True)
-    return scored[:top_n]
-
-def recommend_items():
-    return [x["item"] for x in ai_recommendations(3)]
-
-def ai_life_analysis():
-    weakest = weakest_dimension()
-    last_event = st.session_state.last_event or "目前尚未發生重大事件"
-    age = st.session_state.age
-    h, m, w = st.session_state.health, st.session_state.mind, st.session_state.wealth
-
-    if weakest == "健康風險":
-        focus = "目前最大的缺口是健康承受力。若接下來再次遇到住院、手術、癌症或重大疾病，可能同時拖累財富與心理狀態。"
-    elif weakest == "心理壓力":
-        focus = "目前最大的缺口是心理韌性。若未來遇到疾病、理賠或家庭壓力，可能因流程與不確定感造成持續扣分。"
-    else:
-        focus = "目前最大的缺口是財務韌性。若遇到市場震盪、醫療支出或退休收入轉換，Wealth 可能快速下降。"
-
-    if age >= 65:
-        stage = "你已進入退休與高齡風險階段，應優先檢查年金、長照與醫療保障是否足夠。"
-    elif age >= 50:
-        stage = "你已進入中後期人生規劃階段，醫療、退休現金流與長照準備會逐漸變重要。"
-    else:
-        stage = "你仍在累積資產與建立基本保障的階段，建議先補足醫療與財務防線。"
-
+def render_ai_life_advisor():
+    weakest = strongest_risk_label()
+    last_event = st.session_state.get("last_event") or "尚未發生重大事件"
     st.markdown(f"""
     <div class="glass-card">
-        <h2>🤖 AI 人生保障分析</h2>
-        <span class="badge">年齡：{age} 歲</span>
-        <span class="badge">Health：{h}｜{risk_level(h)}</span>
-        <span class="badge">Mind：{m}｜{risk_level(m)}</span>
-        <span class="badge">Wealth：{w}｜{risk_level(w)}</span>
-        <span class="warn-badge">主要痛點：{weakest}</span>
-        <h3>📌 AI 判斷</h3>
-        <div class="event-card">最近事件：{last_event}</div>
-        <p>{focus}</p>
-        <p>{stage}</p>
+      <h2>🤖 AI 人生保障分析</h2>
+      <p>目前你的主要風險是 <b>{weakest}</b>。最近事件：<b>{last_event}</b></p>
+      <span class="badge">Health：{st.session_state.health}｜{get_status_level(st.session_state.health)}</span>
+      <span class="badge">Mind：{st.session_state.mind}｜{get_status_level(st.session_state.mind)}</span>
+      <span class="badge">Wealth：{st.session_state.wealth}｜{get_status_level(st.session_state.wealth)}</span>
+      <p style="margin-top:12px; color:#d1d5db;">系統會依據年齡、身心財數值、最近事件與已配置保障，推薦最需要補上的保險。</p>
     </div>
     """, unsafe_allow_html=True)
-
-def insurance_event_name(item):
-    mapping = {
-        "實支實付醫療險": "住院手術",
-        "住院日額醫療險": "住院手術",
-        "手術醫療險": "住院手術",
-        "重大傷病險": "重大疾病風險",
-        "癌症險": "癌症治療",
-        "長期照顧險": "長照需求出現",
-        "失智險": "失智照護",
-        "年金險": "退休焦慮",
-        "定期壽險": "家庭責任增加",
-        "投資型保單": "股市黑天鵝",
-        "國泰智能投資": "股市黑天鵝",
-        "FitBack 健康吧": "重大疾病風險",
-        "CVX 泰好保": "重大疾病風險",
-        "理賠聯盟鏈": "重大疾病風險",
-        "AI 理賠顧問": "重大疾病風險",
-    }
-    return mapping.get(item, "重大疾病風險")
-
-def simulate_single_item_effect(item, event_name):
-    impact = EVENT_IMPACT.get(event_name, {"health": -20, "mind": -10, "wealth": -20}).copy()
-    h, m, w = impact["health"], impact["mind"], impact["wealth"]
-    age = st.session_state.age
-
-    if item == "FitBack 健康吧":
-        h += 8
-    if item == "實支實付醫療險" and event_name == "住院手術":
-        w += 16
-    if item == "住院日額醫療險" and event_name == "住院手術":
-        w += 10
-    if item == "手術醫療險" and event_name == "住院手術":
-        w += 15
-    if item == "重大傷病險" and event_name == "重大疾病風險":
-        w += 20; h += 12
-    if item == "癌症險" and event_name == "癌症治療":
-        w += 22; h += 15
-    if item == "長期照顧險" and event_name == "長照需求出現":
-        w += 26; h += 20
-    if item == "失智險" and event_name == "失智照護":
-        w += 22; m += 18
-    if item == "年金險" and (event_name == "退休焦慮" or age >= 65):
-        w += 12
-    if item == "定期壽險" and event_name == "家庭責任增加":
-        w += 14; m += 8
-    if item == "國泰智能投資" and event_name == "股市黑天鵝":
-        w += 20
-    if item == "投資型保單" and event_name == "股市黑天鵝":
-        w += 12
-    if item == "CVX 泰好保":
-        m += 12
-    if item == "理賠聯盟鏈":
-        m += 15
-    if item == "AI 理賠顧問":
-        m += 5
-    return {"health": h, "mind": m, "wealth": w}
-
-def render_impact_comparison(item):
-    event_name = insurance_event_name(item)
-    base = EVENT_IMPACT.get(event_name, {"health": -20, "mind": -10, "wealth": -20})
-    after = simulate_single_item_effect(item, event_name)
-    st.markdown(f"""
-    <div class="compare-card">
-        <h4>⚖️ 如果遇到「{event_name}」</h4>
-        <p style="color:#cbd5e1;">比較未投保與配置「{item}」後，事件可能造成的數值變化。</p>
-    </div>
-    """, unsafe_allow_html=True)
-    c1, c2 = st.columns(2)
-    with c1:
-        st.markdown(f"""
-        <div class="compare-card">
-            <h4>未配置</h4>
-            <p>Health：{base['health']}</p>
-            <p>Mind：{base['mind']}</p>
-            <p>Wealth：{base['wealth']}</p>
-        </div>
-        """, unsafe_allow_html=True)
-    with c2:
-        st.markdown(f"""
-        <div class="compare-card">
-            <h4>配置後</h4>
-            <p>Health：{after['health']}</p>
-            <p>Mind：{after['mind']}</p>
-            <p>Wealth：{after['wealth']}</p>
-        </div>
-        """, unsafe_allow_html=True)
-
-def render_recommendation_cards():
-    recs = ai_recommendations(3)
-    st.markdown('<div class="glass-card"><h2>🎯 Top 3 AI 推薦保障</h2><p>推薦分數會依照年齡、目前身心財狀態、最近事件、人生目標與是否已配置保障動態計算。</p></div>', unsafe_allow_html=True)
+    render_coverage_dashboard()
+    recs = ai_recommendation_rank(3)
+    st.markdown('<div class="glass-card"><h3>🎯 Top 3 推薦保障</h3><p>每張卡片都附上推薦分數、推薦理由，以及未投保/投保後差異。</p></div>', unsafe_allow_html=True)
     cols = st.columns(3)
-    rank_icons = ["🥇", "🥈", "🥉"]
-    for i, rec in enumerate(recs):
-        item = rec["item"]
-        data = INSURANCE_DETAIL[item]
-        reasons_html = "".join([f"<li>{r}</li>" for r in rec["reasons"]])
+    medals = ["🥇 第一推薦", "🥈 第二推薦", "🥉 第三推薦"]
+    for i, (score, name, reasons) in enumerate(recs):
+        data = INSURANCE_DETAIL[name]
+        event_name, without_vals, with_vals = product_effect_preview(name)
+        reason_html = ''.join([f'<p class="small-text">✓ {r}</p>' for r in reasons])
         with cols[i]:
             st.markdown(f"""
-            <div class="recommend-card">
-                <h2>{rank_icons[i]} {item}</h2>
-                <span class="warn-badge">推薦度 {rec['score']}%</span>
-                <span class="badge">{data['category']}</span>
-                <p>{data['short']}</p>
-                <h4>推薦原因</h4>
-                <ul>{reasons_html}</ul>
-                <p><b>遊戲效果：</b>{data['effect']}</p>
+            <div class="rpg-card">
+              <div class="badge">{medals[i]}</div>
+              <h2>{data['title']}</h2>
+              <div class="badge">推薦度 {score}%</div>
+              <p><b>推薦原因：</b></p>
+              {reason_html}
+              <div class="effect-box">{data['effect']}</div>
             </div>
             """, unsafe_allow_html=True)
-            render_impact_comparison(item)
-            if st.button(f"配置推薦：{item}", key=f"ai_equip_{item}", use_container_width=True):
-                equip_item(item)
-            if st.button(f"📖 查看推薦詳情：{item}", key=f"ai_wiki_{item}", use_container_width=True):
-                goto("insurance_detail", selected_insurance=item, previous_page="shop")
+            st.progress(score / 100)
+            st.markdown(f"**情境比較：{event_name}**")
+            compare_cols = st.columns(2)
+            with compare_cols[0]:
+                st.caption("未投保後")
+                st.write(f"Health {without_vals[0]}")
+                st.write(f"Mind {without_vals[1]}")
+                st.write(f"Wealth {without_vals[2]}")
+            with compare_cols[1]:
+                st.caption("投保後")
+                st.write(f"Health {with_vals[0]}")
+                st.write(f"Mind {with_vals[1]}")
+                st.write(f"Wealth {with_vals[2]}")
+            if st.button(f"配置 AI 推薦：{name}", key=f"ai_equip_{name}", use_container_width=True):
+                equip_item(name)
+            if st.button(f"📖 查看推薦理由百科：{name}", key=f"ai_wiki_{name}", use_container_width=True):
+                goto("insurance_detail", selected_insurance=name, previous_page="shop")
+
+def render_product_risk_comparison(name):
+    if name not in INSURANCE_DETAIL:
+        return
+    event_name, without_vals, with_vals = product_effect_preview(name)
+    st.markdown(f"""
+    <div class="glass-card">
+      <h3>🧪 如果不投保 vs 投保後</h3>
+      <p>模擬情境：<b>{event_name}</b></p>
+      <p class="small-text">此區塊用遊戲數值呈現保障差異，幫助玩家理解為什麼這項保險適合當前人生階段。</p>
+    </div>
+    """, unsafe_allow_html=True)
+    cols = st.columns(3)
+    labels = ["Health", "Mind", "Wealth"]
+    for i, label in enumerate(labels):
+        with cols[i]:
+            st.metric(label, f"{with_vals[i]}", delta=f"比未投保 +{with_vals[i] - without_vals[i]}")
+            st.progress(with_vals[i] / 100)
 
 def apply_item_effects(name, dh, dm, dw):
     items = st.session_state.game_items
@@ -778,8 +710,7 @@ def insurance_detail_block(selected, show_back=True, allow_equip=False):
         <p><a href="{data['url']}" target="_blank">前往國泰人壽官方頁面</a></p>
     </div>
     """, unsafe_allow_html=True)
-    st.markdown('<div class="glass-card"><h2>🤖 AI 情境比較</h2></div>', unsafe_allow_html=True)
-    render_impact_comparison(selected)
+    render_product_risk_comparison(selected)
     cols = st.columns(3 if allow_equip else 2)
     if show_back:
         with cols[0]:
@@ -822,10 +753,10 @@ if st.session_state.page == "start":
         <div class="title">Life 100<br>新泰度生存指南</div>
         <div class="subtitle">
             你可以選擇進入人生模擬遊戲，或先查看 Life100 保險百科。<br>
-            遊戲與百科分開，並加入 AI 人生保障顧問，讓每次配置都有推薦理由與風險比較。
+            遊戲與百科分開，讓玩家更清楚知道自己正在「玩遊戲」還是「查資料」。
         </div>
         <br>
-        <span class="badge">🎮 人生遊戲</span><span class="badge">🤖 AI 保障分析</span><span class="badge">📚 保險百科</span><span class="badge">🧭 遊戲說明</span>
+        <span class="badge">🎮 人生遊戲</span><span class="badge">📚 保險百科</span><span class="badge">🧭 遊戲說明</span>
     </div>
     """, unsafe_allow_html=True)
 
@@ -834,7 +765,7 @@ if st.session_state.page == "start":
         st.markdown("""
         <div class="rpg-card"><h2>🎮 人生遊戲模式</h2>
         <p>從 25 歲開始，面對疾病、投資、長照、退休與家庭風險，挑戰活到 100 歲。</p>
-        <p><b>流程：</b>測驗 → 每 5 年前進 → 10 年決策點 → AI 推薦保障 → 百歲結算</p></div>
+        <p><b>流程：</b>測驗 → 每 5 年前進 → 10 年決策點 → 配置保障 → 百歲結算</p></div>
         """, unsafe_allow_html=True)
         if st.button("🚀 開始人生遊戲", use_container_width=True):
             goto("quiz")
@@ -869,8 +800,12 @@ elif st.session_state.page == "game_guide":
         <div class="event-card">Step 1：完成 4 題百歲天賦測驗，生成初始人生面板。</div>
         <div class="event-card">Step 2：點擊「前進 5 年」，觸發人生事件，例如過勞、股災、重大疾病、長照需求。</div>
         <div class="event-card">Step 3：每 10 年會進入「人生規劃室」，你可以配置保險保障。</div>
-        <div class="event-card">Step 4：人生規劃室會出現 AI 保障分析、保障覆蓋率、Top 3 推薦與未投保/投保後比較。</div>
+        <div class="event-card">Step 4：保險會在未來事件中抵銷 Health、Mind 或 Wealth 的損失。</div>
         <div class="event-card">Step 5：到 100 歲後產出人生結算報告。</div>
+    </div>
+    <div class="glass-card">
+        <h2>保險百科與遊戲的關係</h2>
+        <p>百科是查資料用；遊戲是做決策用。你可以先看百科理解每項保障，再進遊戲配置。遊戲中的「查看詳細百科」也會帶你查看完整說明與國泰官方連結。</p>
     </div>
     """, unsafe_allow_html=True)
     c1, c2 = st.columns(2)
@@ -957,8 +892,10 @@ elif st.session_state.page == "game":
         st.markdown('<div class="glass-card"><h3>📡 人生風險雷達</h3></div>', unsafe_allow_html=True)
         risk_chart()
 
-    ai_life_analysis()
-    render_coverage_dashboard()
+    st.markdown('<div class="glass-card"><h3>🤖 AI 推薦保障</h3><p>根據你目前的身、心、財狀態，系統推薦以下保障：</p>', unsafe_allow_html=True)
+    for r in recommend_items():
+        st.markdown(f'<span class="badge">{r}</span>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
     st.markdown('<div class="glass-card"><h3>🎒 目前已配置保障</h3>', unsafe_allow_html=True)
     if st.session_state.game_items:
@@ -1020,33 +957,29 @@ elif st.session_state.page == "game":
 elif st.session_state.page == "shop":
     st.markdown('<div class="title">🛡️ 人生規劃室</div>', unsafe_allow_html=True)
     st.markdown("""
-    <div class="glass-card"><h3>Step 3：AI 人生保障顧問</h3>
-    <p>這裡是每 10 年一次的人生決策點。系統會先分析你目前的身、心、財與年齡，再給出推薦保障、推薦原因、保障覆蓋率與未投保/投保後比較。</p></div>
+    <div class="glass-card"><h3>Step 3：選擇保障</h3>
+    <p>這裡是每 10 年一次的人生決策點。請根據目前的身、心、財狀態，選擇適合的保障。卡片只放簡短資訊，想看完整內容可點「查看詳細百科」。</p></div>
     """, unsafe_allow_html=True)
     c1, c2, c3 = st.columns(3)
     c1.metric("目前財富", st.session_state.wealth)
     c2.metric("小樹點", st.session_state.tree)
     c3.metric("已配置保障", len(st.session_state.game_items))
 
-    ai_life_analysis()
-    render_coverage_dashboard()
-    render_recommendation_cards()
+    render_ai_life_advisor()
 
-    st.markdown('<div class="glass-card"><h2>🛍️ 全部保障商店</h2><p>除了 AI 推薦外，你也可以自由選擇其他保障。卡片只放簡短資訊，想看完整內容可點「查看詳細百科」。</p></div>', unsafe_allow_html=True)
+    st.markdown('<div class="glass-card"><h3>🛒 所有保障商品</h3><p>AI推薦只是輔助，下面仍保留原本所有商品卡片，玩家可以自由選擇。</p></div>', unsafe_allow_html=True)
+
     cols = st.columns(3)
     for idx, name in enumerate(SHOP_ITEMS):
         data = INSURANCE_DETAIL[name]
         icon = data["title"].split(" ")[0]
         final_cost = max(0, data["cost"] - st.session_state.tree)
-        score, reasons = recommendation_reason(name)
         with cols[idx % 3]:
             st.markdown(f"""
             <div class="rpg-card">
                 <h2>{icon} {name}</h2>
-                <span class="badge">{data['category']}</span>
-                <span class="warn-badge">AI 分數 {score}%</span>
+                <div class="badge">{data['category']}</div>
                 <p style="color:#d1d5db;">{data['short']}</p>
-                <p><b>主要理由：</b>{reasons[0]}</p>
                 <p><b>遊戲效果：</b>{data['effect']}</p>
                 <h3>💰 成本：{data['cost']}　折抵後：{final_cost}</h3>
             </div>
@@ -1121,9 +1054,11 @@ elif st.session_state.page == "result":
     with c1: stat_card("💪", "身 Health", st.session_state.health, "最終健康狀態")
     with c2: stat_card("🧠", "心 Mind", st.session_state.mind, "最終心理韌性")
     with c3: stat_card("💰", "財 Wealth", st.session_state.wealth, "最終財務安全")
-    ai_life_analysis()
-    render_coverage_dashboard()
-    st.markdown('<div class="glass-card"><h2>🔍 百歲後建議優先查看保障</h2>', unsafe_allow_html=True)
+    scores = {"健康風險": st.session_state.health, "心理壓力": st.session_state.mind, "財務風險": st.session_state.wealth}
+    weakest = min(scores, key=scores.get)
+    st.markdown('<div class="glass-card"><h2>🔍 你的主要風險痛點</h2>', unsafe_allow_html=True)
+    st.write(f"你的最大弱點是：**{weakest}**")
+    st.write("建議優先查看以下保障：")
     for r in recommend_items():
         st.markdown(f'<span class="badge">{r}</span>', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
