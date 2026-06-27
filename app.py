@@ -115,10 +115,10 @@ if st.session_state.page == "start":
     """, unsafe_allow_html=True)
     c1,c2,c3=st.columns(3)
     with c1:
-        st.markdown("<div class='rpg-card'><h2>🎮 人生遊戲模式</h2><p>從25歲開始，面對疾病、投資、長照、退休與家庭風險，挑戰活到100歲。</p><p><b>流程：</b>測驗 → 前進5年 → 人生規劃室 → 百歲結算</p></div>", unsafe_allow_html=True)
+        st.markdown("<div class='rpg-card'><h2>🎮 人生遊戲</h2><p>從25歲開始，面對疾病、投資、長照、退休與家庭風險，挑戰活到100歲。</p><p><b>流程：</b>測驗 → 前進5年 → 人生規劃室 → 百歲結算</p></div>", unsafe_allow_html=True)
         if st.button("🚀 開始人生遊戲", use_container_width=True): goto("quiz")
     with c2:
-        st.markdown("<div class='rpg-card'><h2>📚 Life100 保險百科</h2><p>查看不同保險的用途、保障內容、適合族群、遊戲效果與國泰官方商品連結。</p></div>", unsafe_allow_html=True)
+        st.markdown("<div class='rpg-card'><h2>📚 Life100 百科</h2><p>查看不同保險的用途、保障內容、適合族群、遊戲效果與國泰官方商品連結。</p></div>", unsafe_allow_html=True)
         if st.button("📖 查看保險百科", use_container_width=True): goto("insurance")
     with c3:
         st.markdown("<div class='rpg-card'><h2>🧭 遊戲說明</h2><p>第一次使用建議先看玩法。了解身、心、財三大數值與人生規劃室的作用。</p></div>", unsafe_allow_html=True)
