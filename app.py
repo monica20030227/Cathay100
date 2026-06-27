@@ -25,7 +25,7 @@ header[data-testid="stHeader"], [data-testid="stToolbar"] {background:rgba(0,0,0
 .subtitle {font-size:20px; color:#cbd5e1; margin-top:12px; line-height:1.7;}
 .glass-card,.product-card {padding:24px; border-radius:28px; background:linear-gradient(135deg,rgba(255,255,255,.13),rgba(255,255,255,.045)); border:1px solid rgba(255,255,255,.16); box-shadow:0 18px 50px rgba(0,0,0,.25); backdrop-filter:blur(16px); margin-bottom:18px; transition:.25s ease;}
 .glass-card:hover,.product-card:hover {transform:translateY(-4px); box-shadow:0 26px 70px rgba(0,0,0,.36);}
-.rpg-card {padding:22px; border-radius:24px; background:linear-gradient(135deg,rgba(0,120,72,.38),rgba(9,25,18,.68)); border:1px solid rgba(74,222,128,.35); box-shadow:inset 0 0 30px rgba(74,222,128,.08),0 14px 42px rgba(0,0,0,.28); margin-bottom:14px; animation:float 3.6s ease-in-out infinite;}
+.rpg-card{padding:22px; border-radius:24px; background:linear-gradient(135deg,rgba(0,120,72,.38),rgba(9,25,18,.68)); border:1px solid rgba(74,222,128,.35);box-shadow:inset 0 0 30px rgba(74,222,128,.08),0 14px 42px rgba(0,0,0,.28); height:320px;display:flex;flex-direction:column;justify-content:space-between;}
 @keyframes float {0%{transform:translateY(0)}50%{transform:translateY(-5px)}100%{transform:translateY(0)}}
 .status-label,.product-subtitle,.section-label {font-size:15px; color:#bbf7d0; font-weight:800;}
 .big-number {font-size:38px; font-weight:900;}
