@@ -1,5 +1,6 @@
 # app.py
 import streamlit as st
+import random
 import plotly.graph_objects as go
 from insurance_db import get_product_by_item
 from game_engine import next_event, clamp, analyze_life_risk, protection_score
@@ -49,12 +50,13 @@ button[kind="primary"], .stButton>button {border-radius:999px!important; border:
 """, unsafe_allow_html=True)
 
 def init_state():
-    defaults = {"page":"start","age":25,"health":80,"mind":80,"wealth":80,"tree":0,"game_items":[],"logs":[],"persona":"尚未生成","goal":"","last_event":None,"last_event_tag":None,"previous_page":"start","defense_notice":""}
+    defaults = {"page":"start","age":25,"health":80,"mind":80,"wealth":80,"tree":0,"game_items":[],"logs":[],"persona":"尚未生成","goal":"","last_event":None,"last_event_tag":None,"previous_page":"start","defense_notice":"", "history":{"age":[25],"health":[80],"mind":[80],"wealth":[80]}}
     for k,v in defaults.items():
         if k not in st.session_state: st.session_state[k]=v
 init_state()
 
 def add_log(text): st.session_state.logs.append(text)
+
 def reset_game():
     for k in list(st.session_state.keys()): del st.session_state[k]
     st.rerun()
@@ -95,9 +97,13 @@ def top_nav():
     with c4:
         if st.button("🧭 遊戲說明", use_container_width=True): goto("guide")
 
-def render_ai_review(weakest, recs):
+def render_ai_review(weakest, recs, scores):
     last_event = st.session_state.last_event or "尚未發生重大事件"
     rec_name = recs[0][1]["game_item"] if recs else "FitBack 健康吧"
+    
+    weakest_val = scores.get(weakest, 0)
+    what_if_score = min(100, weakest_val + 45) # 模擬配置保險後的平行宇宙得分
+    
     st.markdown(f"""
     <div class='light-ai-card'>
       <h4>【AI 軌跡分析報告】</h4>
@@ -106,6 +112,9 @@ def render_ai_review(weakest, recs):
       <hr style='border-color:#cbd5e1;margin:14px 0;'>
       <h4>【國泰新泰度建議】</h4>
       <p>建議優先補強 <span style='background:#bbf7d0;padding:2px 8px;border-radius:6px;font-weight:900;color:#166534;'>{rec_name}</span>，讓未來遇到疾病、退休、照護或財務波動時，身、心、財不會一次被打穿。</p>
+      <hr style='border-color:#cbd5e1;margin:14px 0;'>
+      <h4>【What-If 平行宇宙推演】</h4>
+      <p>💡 若在早期花費少量資源配置該保障，您的最終 {weakest} 將會是 <b style='color:#ea580c;font-size:18px;'>{what_if_score}</b> 分，而不是現在的危機狀態！數據證明，提早防禦能帶來極高的風險報酬率 (ROI)。</p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -216,10 +225,17 @@ elif st.session_state.page == "game":
     st.markdown('<div class="glass-card"><h3>📜 人生事件紀錄</h3>', unsafe_allow_html=True)
     for log in st.session_state.logs[-5:]: st.markdown(f'<div class="event-card">🎴 {log}</div>', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
+    
     if st.button("⏩ 前進 5 年", use_container_width=True):
         st.session_state.age += 5
         event, h, m, w, tree_gain, effect_logs, defense = next_event(st.session_state.age, st.session_state.health, st.session_state.mind, st.session_state.wealth, st.session_state.game_items)
         st.session_state.health=h; st.session_state.mind=m; st.session_state.wealth=w; st.session_state.tree += tree_gain
+        
+        st.session_state.history["age"].append(st.session_state.age)
+        st.session_state.history["health"].append(h)
+        st.session_state.history["mind"].append(m)
+        st.session_state.history["wealth"].append(w)
+        
         st.session_state.last_event=event["name"]; st.session_state.last_event_tag=event["tag"]
         add_log(f"{st.session_state.age}歲：{event['name']}")
         for e in effect_logs: add_log(e)
@@ -251,11 +267,38 @@ elif st.session_state.page == "result":
     with c1: stat_card("💪","身 Health",st.session_state.health,"最終健康狀態")
     with c2: stat_card("🧠","心 Mind",st.session_state.mind,"最終心理韌性")
     with c3: stat_card("💰","財 Wealth",st.session_state.wealth,"最終財務安全")
+    
     scores={"健康風險":st.session_state.health,"心理壓力":st.session_state.mind,"財務風險":st.session_state.wealth}
     weakest=min(scores,key=scores.get)
+    
+    beat_percent = clamp(int((st.session_state.health + st.session_state.mind + st.session_state.wealth) / 300 * 100) + random.randint(5, 15))
+    st.markdown(f"""
+    <div class="glass-card" style="text-align: center;">
+        <h3 style="color:#cbd5e1; margin-bottom: 5px;">🏆 全國同齡人存活榜</h3>
+        <div style="font-size: 22px;">您的百歲決策，成功擊敗了 <span style="font-size: 38px; color: #facc15; font-weight: 900;">{beat_percent}%</span> 的同世代玩家！</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    col_chart1, col_chart2 = st.columns(2)
+    with col_chart1:
+        st.markdown('<div class="glass-card"><h2>📡 最終狀態雷達</h2>', unsafe_allow_html=True)
+        risk_chart()
+        st.markdown('</div>', unsafe_allow_html=True)
+    with col_chart2:
+        st.markdown('<div class="glass-card"><h2>📈 百歲人生軌跡走勢</h2>', unsafe_allow_html=True)
+        hist = st.session_state.history
+        fig_line = go.Figure()
+        fig_line.add_trace(go.Scatter(x=hist["age"], y=hist["health"], mode='lines+markers', name='身 Health', line=dict(color='#22c55e', width=3)))
+        fig_line.add_trace(go.Scatter(x=hist["age"], y=hist["mind"], mode='lines+markers', name='心 Mind', line=dict(color='#3b82f6', width=3)))
+        fig_line.add_trace(go.Scatter(x=hist["age"], y=hist["wealth"], mode='lines+markers', name='財 Wealth', line=dict(color='#facc15', width=3)))
+        fig_line.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font=dict(color="#f8fafc"), xaxis=dict(title="年齡 (歲)", gridcolor="rgba(255,255,255,.1)"), yaxis=dict(title="數值", range=[0, 105], gridcolor="rgba(255,255,255,.1)"), legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1), height=430, margin=dict(l=0, r=0, t=10, b=0))
+        st.plotly_chart(fig_line, use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+
     recs=recommend_products(st.session_state.health, st.session_state.mind, st.session_state.wealth, st.session_state.last_event_tag, st.session_state.game_items, limit=3)
     score = protection_score(st.session_state.game_items, st.session_state.health, st.session_state.mind, st.session_state.wealth)
     st.markdown(f"""<div class='protection-score'><div style='color:#cbd5e1;font-size:18px;'>你的國泰神盾防護力</div><span>{score}</span> / 100</div>""", unsafe_allow_html=True)
+    
     st.markdown('<div class="glass-card"><h2>🔍 你的主要風險痛點</h2>', unsafe_allow_html=True)
     st.write(f"你的最大弱點是：**{weakest}**")
     st.write("建議補強：" + "、".join([p['game_item'] for _,p,_ in recs]))
@@ -263,10 +306,12 @@ elif st.session_state.page == "result":
     for msg in insights:
         st.markdown(f"<div class='event-card'>🤖 {msg}</div>", unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
+    
     st.markdown('<div class="glass-card"><h2>🤖 AI 專屬人生復盤</h2><p class="small-text">讓 AI 分析你這段人生的決策軌跡，找出潛在盲點與轉機。</p>', unsafe_allow_html=True)
     if st.button("✨ 啟動 AI 深度復盤分析", type="primary", use_container_width=True):
-        render_ai_review(weakest, recs)
+        render_ai_review(weakest, recs, scores)
     st.markdown('</div>', unsafe_allow_html=True)
+    
     st.markdown('<div class="glass-card"><h2>📣 下一步：將戰略化為現實</h2><p class="small-text">這裡可作為 Demo 的名單收集與專屬規劃入口。</p></div>', unsafe_allow_html=True)
     with st.expander("🙋 聯絡專屬規劃師（Demo 表單）"):
         st.info("🛡️ Demo 隱私提示：此區塊僅示範安全對接流程，未實際送出個資。")
