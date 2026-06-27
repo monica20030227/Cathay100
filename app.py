@@ -115,10 +115,10 @@ if st.session_state.page == "start":
     """, unsafe_allow_html=True)
     c1,c2,c3=st.columns(3)
     with c1:
-        st.markdown("<div class='rpg-card'><h2>🎮 人生遊戲</h2><p>從25歲開始，面對疾病、投資、長照、退休與家庭風險，挑戰活到100歲。</p><p><b>流程：</b>測驗 → 前進5年 → 人生規劃室 → 百歲結算</p></div>", unsafe_allow_html=True)
+        st.markdown("<div class='rpg-card'><h2>🎮 人生遊戲模式</h2><p>從25歲開始，面對疾病、投資、長照、退休與家庭風險，挑戰活到100歲。</p><p><b>流程：</b>測驗 → 前進5年 → 人生規劃室 → 百歲結算</p></div>", unsafe_allow_html=True)
         if st.button("🚀 開始人生遊戲", use_container_width=True): goto("quiz")
     with c2:
-        st.markdown("<div class='rpg-card'><h2>📚 Life100 百科</h2><p>查看不同保險的用途、保障內容、適合族群、遊戲效果與國泰官方商品連結。</p></div>", unsafe_allow_html=True)
+        st.markdown("<div class='rpg-card'><h2>📚 Life100 保險百科</h2><p>查看不同保險的用途、保障內容、適合族群、遊戲效果與國泰官方商品連結。</p></div>", unsafe_allow_html=True)
         if st.button("📖 查看保險百科", use_container_width=True): goto("insurance")
     with c3:
         st.markdown("<div class='rpg-card'><h2>🧭 遊戲說明</h2><p>第一次使用建議先看玩法。了解身、心、財三大數值與人生規劃室的作用。</p></div>", unsafe_allow_html=True)
@@ -135,6 +135,28 @@ elif st.session_state.page == "guide":
     <div class="guide-step">Step 3：每10年會進入「人生規劃室」，可以配置國泰神盾。</div>
     <div class="guide-step">Step 4：保險會在未來事件中抵銷 Health、Mind 或 Wealth 的損失。</div>
     <div class="guide-step">Step 5：到100歲或數值歸零時，產出 AI 人生復盤報告。</div></div>
+
+    <div class="glass-card"><h2>📊 扣分與加分標準</h2>
+    <p class="small-text">每次前進 5 年會抽取一個人生事件。事件會同時影響 Health、Mind、Wealth，分數最低 0、最高 100。</p>
+    <div class="guide-step"><b>一般負面事件：</b>約扣 3～16 分。例如過勞、退休焦慮、家庭責任增加。這類事件會慢慢消耗身心財，但通常不會一次擊倒玩家。</div>
+    <div class="guide-step"><b>高衝擊事件：</b>約扣 10～24 分。例如重大疾病、癌症、長照、股市黑天鵝、親人離世。這類事件仍有明顯威脅，但已調低，不會連續兩三次就幾乎必輸。</div>
+    <div class="guide-step"><b>正向事件：</b>約加 4～28 分。例如健康習慣回饋、資產配置成功、職涯升級。正向事件可以幫助玩家把數值拉回安全區。</div>
+    <div class="guide-step"><b>保險防禦：</b>若已配置對應保障，事件發生時會額外補回 Health、Mind 或 Wealth。例如醫療險可降低住院/手術造成的 Wealth 損失，重大傷病/癌症保障可降低重症事件衝擊。</div>
+    <div class="guide-step"><b>小樹點：</b>事件後 Health 若維持 75 以上，獲得小樹點 +2；若有 FitBack 健康吧且 Health 仍在 70 以上，額外 +1。小樹點可在商城折抵保障成本。</div>
+    </div>
+
+    <div class="glass-card"><h2>🧮 目前事件分數範例</h2>
+    <span class="badge">過勞危機：Health -12、Mind -12、Wealth -3</span>
+    <span class="badge">股市黑天鵝：Health -2、Mind -8、Wealth -20</span>
+    <span class="badge">重大疾病：Health -20、Mind -8、Wealth -18</span>
+    <span class="badge">癌症治療：Health -24、Mind -12、Wealth -22</span>
+    <span class="badge">長照需求：Health -24、Mind -12、Wealth -24</span>
+    <span class="badge">親人離世：Health -3、Mind -26、Wealth -3</span>
+    <span class="badge">健康習慣：Health +16、Mind +12、Wealth +8</span>
+    <span class="badge">資產配置成功：Health +4、Mind +8、Wealth +26</span>
+    <span class="badge">職涯升級：Health -3、Mind -5、Wealth +28</span>
+    </div>
+
     <div class="glass-card"><h2>保險百科與遊戲的關係</h2><p>百科是查資料用；遊戲是做決策用。你可以先看百科理解每項保障，再回到遊戲中配置。</p></div>
     """, unsafe_allow_html=True)
     if st.button("🚀 我懂了，開始遊戲", use_container_width=True): goto("quiz")
