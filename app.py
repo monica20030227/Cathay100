@@ -1,6 +1,5 @@
 # app.py
 import streamlit as st
-import random
 import plotly.graph_objects as go
 from insurance_db import get_product_by_item
 from game_engine import next_event, clamp, analyze_life_risk, protection_score
@@ -50,13 +49,25 @@ button[kind="primary"], .stButton>button {border-radius:999px!important; border:
 """, unsafe_allow_html=True)
 
 def init_state():
-    defaults = {"page":"start","age":25,"health":80,"mind":80,"wealth":80,"tree":0,"game_items":[],"logs":[],"persona":"尚未生成","goal":"","last_event":None,"last_event_tag":None,"previous_page":"start","defense_notice":"", "history":{"age":[25],"health":[80],"mind":[80],"wealth":[80]}}
+    defaults = {"page":"start","age":25,"health":80,"mind":80,"wealth":80,"tree":0,"game_items":[],"logs":[],"persona":"尚未生成","goal":"","last_event":None,"last_event_tag":None,"previous_page":"start","defense_notice":"","pending_planning":False,"initial_budget":30,"initial_planning_done":False,"shop_mode":"normal"}
     for k,v in defaults.items():
         if k not in st.session_state: st.session_state[k]=v
 init_state()
 
 def add_log(text): st.session_state.logs.append(text)
 
+def format_delta(before, after):
+    diff = int(after) - int(before)
+    if diff > 0:
+        return f"+{diff}"
+    return str(diff)
+
+def event_score_summary(old_health, old_mind, old_wealth, new_health, new_mind, new_wealth):
+    return (
+        f"💪 Health {format_delta(old_health, new_health)}，剩 {new_health}；"
+        f"🧠 Mind {format_delta(old_mind, new_mind)}，剩 {new_mind}；"
+        f"💰 Wealth {format_delta(old_wealth, new_wealth)}，剩 {new_wealth}"
+    )
 def reset_game():
     for k in list(st.session_state.keys()): del st.session_state[k]
     st.rerun()
@@ -91,19 +102,15 @@ def top_nav():
     with c1:
         if st.button("🏠 首頁", use_container_width=True): goto("start")
     with c2:
-        if st.button("🎮 回到遊戲", use_container_width=True): goto("game")
+        if st.button("🎮 回到人生轉盤", use_container_width=True): goto("game")
     with c3:
         if st.button("📚 保險百科", use_container_width=True): goto("insurance")
     with c4:
         if st.button("🧭 遊戲說明", use_container_width=True): goto("guide")
 
-def render_ai_review(weakest, recs, scores):
+def render_ai_review(weakest, recs):
     last_event = st.session_state.last_event or "尚未發生重大事件"
     rec_name = recs[0][1]["game_item"] if recs else "FitBack 健康吧"
-    
-    weakest_val = scores.get(weakest, 0)
-    what_if_score = min(100, weakest_val + 45) # 模擬配置保險後的平行宇宙得分
-    
     st.markdown(f"""
     <div class='light-ai-card'>
       <h4>【AI 軌跡分析報告】</h4>
@@ -112,9 +119,6 @@ def render_ai_review(weakest, recs, scores):
       <hr style='border-color:#cbd5e1;margin:14px 0;'>
       <h4>【國泰新泰度建議】</h4>
       <p>建議優先補強 <span style='background:#bbf7d0;padding:2px 8px;border-radius:6px;font-weight:900;color:#166534;'>{rec_name}</span>，讓未來遇到疾病、退休、照護或財務波動時，身、心、財不會一次被打穿。</p>
-      <hr style='border-color:#cbd5e1;margin:14px 0;'>
-      <h4>【What-If 平行宇宙推演】</h4>
-      <p>💡 若在早期花費少量資源配置該保障，您的最終 {weakest} 將會是 <b style='color:#ea580c;font-size:18px;'>{what_if_score}</b> 分，而不是現在的危機狀態！數據證明，提早防禦能帶來極高的風險報酬率 (ROI)。</p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -140,30 +144,32 @@ elif st.session_state.page == "guide":
     <div class="glass-card"><h2>遊戲目標</h2><p>從25歲一路走到100歲，並讓三個核心數值都不要歸零：</p><span class="badge">💪 身 Health</span><span class="badge">🧠 心 Mind</span><span class="badge">💰 財 Wealth</span></div>
     <div class="glass-card"><h2>怎麼玩？</h2>
     <div class="guide-step">Step 1：完成4題百歲天賦測驗，生成初始人生面板。</div>
-    <div class="guide-step">Step 2：點擊「前進5年」，觸發過勞、股災、重大疾病、長照等人生事件。</div>
-    <div class="guide-step">Step 3：每10年會進入「人生規劃室」，可以配置國泰神盾。</div>
-    <div class="guide-step">Step 4：保險會在未來事件中抵銷 Health、Mind 或 Wealth 的損失。</div>
-    <div class="guide-step">Step 5：到100歲或數值歸零時，產出 AI 人生復盤報告。</div></div>
+    <div class="guide-step">Step 2：進入「初始人生規劃」，使用初始保障預算先配置第一道國泰神盾。</div>
+    <div class="guide-step">Step 3：點擊「前進5年」，觸發過勞、股災、重大疾病、長照等人生事件。</div>
+    <div class="guide-step">Step 4：之後每10年會進入「人生規劃室」，可以再次補強保障。</div>
+    <div class="guide-step">Step 5：保險會在未來事件中抵銷 Health、Mind 或 Wealth 的損失。</div>
+    <div class="guide-step">Step 6：到100歲或數值歸零時，產出 AI 人生復盤報告。</div></div>
 
     <div class="glass-card"><h2>📊 扣分與加分標準</h2>
     <p class="small-text">每次前進 5 年會抽取一個人生事件。事件會同時影響 Health、Mind、Wealth，分數最低 0、最高 100。</p>
-    <div class="guide-step"><b>一般負面事件：</b>約扣 3～16 分。例如過勞、退休焦慮、家庭責任增加。這類事件會慢慢消耗身心財，但通常不會一次擊倒玩家。</div>
-    <div class="guide-step"><b>高衝擊事件：</b>約扣 10～24 分。例如重大疾病、癌症、長照、股市黑天鵝、親人離世。這類事件仍有明顯威脅，但已調低，不會連續兩三次就幾乎必輸。</div>
-    <div class="guide-step"><b>正向事件：</b>約加 4～28 分。例如健康習慣回饋、資產配置成功、職涯升級。正向事件可以幫助玩家把數值拉回安全區。</div>
+    <div class="guide-step"><b>一般負面事件：</b>約扣 2～16 分；其中 Wealth 多半只扣 3～8 分。例如過勞、退休焦慮、家庭責任增加。這類事件會慢慢消耗身心財，但通常不會一次擊倒玩家。</div>
+    <div class="guide-step"><b>高衝擊事件：</b>約扣 7～24 分；其中 Wealth 已調輕為約 10～16 分。例如重大疾病、癌症、長照、股市黑天鵝、親人離世。這類事件仍有明顯威脅，但不會讓財產太快歸零。</div>
+    <div class="guide-step"><b>正向事件：</b>約加 4～30 分。例如健康習慣回饋、資產配置成功、職涯升級。正向事件可以幫助玩家把數值拉回安全區。</div>
     <div class="guide-step"><b>保險防禦：</b>若已配置對應保障，事件發生時會額外補回 Health、Mind 或 Wealth。例如醫療險可降低住院/手術造成的 Wealth 損失，重大傷病/癌症保障可降低重症事件衝擊。</div>
-    <div class="guide-step"><b>小樹點：</b>事件後 Health 若維持 75 以上，獲得小樹點 +2；若有 FitBack 健康吧且 Health 仍在 70 以上，額外 +1。小樹點可在商城折抵保障成本。</div>
+    <div class="guide-step"><b>初始保障預算：</b>完成測驗後會得到 30 點初始保障預算，只能在第一次人生規劃使用，不會扣 Wealth。你可以先買 AI 推薦的保障，也可以自由選擇其他商品。</div>
+    <div class="guide-step"><b>小樹點：</b>事件後 Health 若維持 75 以上，獲得小樹點 +2；若有 FitBack 健康吧且 Health 仍在 70 以上，額外 +1。小樹點可在後續人生規劃室折抵保障成本。</div>
     </div>
 
     <div class="glass-card"><h2>🧮 目前事件分數範例</h2>
     <span class="badge">過勞危機：Health -12、Mind -12、Wealth -3</span>
-    <span class="badge">股市黑天鵝：Health -2、Mind -8、Wealth -20</span>
-    <span class="badge">重大疾病：Health -20、Mind -8、Wealth -18</span>
-    <span class="badge">癌症治療：Health -24、Mind -12、Wealth -22</span>
-    <span class="badge">長照需求：Health -24、Mind -12、Wealth -24</span>
+    <span class="badge">股市黑天鵝：Health -2、Mind -8、Wealth -14</span>
+    <span class="badge">重大疾病：Health -20、Mind -8、Wealth -12</span>
+    <span class="badge">癌症治療：Health -24、Mind -12、Wealth -15</span>
+    <span class="badge">長照需求：Health -24、Mind -12、Wealth -16</span>
     <span class="badge">親人離世：Health -3、Mind -26、Wealth -3</span>
-    <span class="badge">健康習慣：Health +16、Mind +12、Wealth +8</span>
-    <span class="badge">資產配置成功：Health +4、Mind +8、Wealth +26</span>
-    <span class="badge">職涯升級：Health -3、Mind -5、Wealth +28</span>
+    <span class="badge">健康習慣：Health +16、Mind +12、Wealth +10</span>
+    <span class="badge">資產配置成功：Health +4、Mind +8、Wealth +28</span>
+    <span class="badge">職涯升級：Health -3、Mind -5、Wealth +30</span>
     </div>
 
     <div class="glass-card"><h2>保險百科與遊戲的關係</h2><p>百科是查資料用；遊戲是做決策用。你可以先看百科理解每項保障，再回到遊戲中配置。</p></div>
@@ -188,13 +194,17 @@ elif st.session_state.page == "quiz":
         health_map={"常熬夜少運動":(55,"健康警戒型"),"偶爾運動":(70,"普通續航型"),"規律運動":(85,"高續航型"),"飲食睡眠都穩定":(92,"黃金體質型")}
         st.session_state.health, health_trait=health_map[sleep]
         st.session_state.goal=goal; st.session_state.persona=f"{health_trait} × {mind_trait} × {money_trait}"
+        st.session_state.initial_budget = 30
+        st.session_state.initial_planning_done = False
+        st.session_state.shop_mode = "initial"
         add_log(f"25歲：你的人生目標是「{goal}」，人格為「{st.session_state.persona}」。")
-        st.session_state.page="game"; st.rerun()
+        add_log("25歲：進入初始人生規劃，獲得初始保障預算 30，可先配置第一道國泰神盾。")
+        st.session_state.page="shop"; st.rerun()
 
 elif st.session_state.page == "game":
     top_nav()
     st.markdown('<div class="title">🎮 Life 100：人生輪轉中</div>', unsafe_allow_html=True)
-    st.markdown('<div class="glass-card"><h3>🎯 目前任務</h3><p>點擊 <b>「前進 5 年」</b> 讓人生繼續推進。每 10 年會進入 <b>人生規劃室</b>，你可以配置保險神盾，降低未來事件造成的損失。</p></div>', unsafe_allow_html=True)
+    st.markdown('<div class="glass-card"><h3>🎯 目前任務</h3><p>你已完成初始人生規劃。點擊 <b>「前進 5 年」</b> 讓人生繼續推進。到達每 10 年決策點時，系統會先讓你留在人生轉盤查看剛發生的事件，再由你點擊進入 <b>人生規劃室</b> 補強保險神盾。</p></div>', unsafe_allow_html=True)
     if st.session_state.defense_notice:
         st.info(st.session_state.defense_notice)
         st.session_state.defense_notice = ""
@@ -225,29 +235,58 @@ elif st.session_state.page == "game":
     st.markdown('<div class="glass-card"><h3>📜 人生事件紀錄</h3>', unsafe_allow_html=True)
     for log in st.session_state.logs[-5:]: st.markdown(f'<div class="event-card">🎴 {log}</div>', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
-    
-    if st.button("⏩ 前進 5 年", use_container_width=True):
-        st.session_state.age += 5
-        event, h, m, w, tree_gain, effect_logs, defense = next_event(st.session_state.age, st.session_state.health, st.session_state.mind, st.session_state.wealth, st.session_state.game_items)
-        st.session_state.health=h; st.session_state.mind=m; st.session_state.wealth=w; st.session_state.tree += tree_gain
-        
-        st.session_state.history["age"].append(st.session_state.age)
-        st.session_state.history["health"].append(h)
-        st.session_state.history["mind"].append(m)
-        st.session_state.history["wealth"].append(w)
-        
-        st.session_state.last_event=event["name"]; st.session_state.last_event_tag=event["tag"]
-        add_log(f"{st.session_state.age}歲：{event['name']}")
-        for e in effect_logs: add_log(e)
-        if defense:
-            st.session_state.defense_notice = defense
-            add_log(defense)
-        elif event.get('severity','') == 'high':
-            st.session_state.defense_notice = f"🚨 缺乏防護網！「{event['name'].split('：')[0]}」造成嚴重打擊。"
-        if tree_gain: add_log(f"健康水位良好，獲得小樹點 +{tree_gain}。")
-        if st.session_state.age % 10 == 5: st.session_state.page="shop"
-        if st.session_state.health<=0 or st.session_state.mind<=0 or st.session_state.wealth<=0 or st.session_state.age>=100: st.session_state.page="result"
-        st.rerun()
+
+    if st.session_state.get("pending_planning", False):
+        st.markdown("""
+        <div class="glass-card">
+          <h3>🛡️ 已到人生規劃決策點</h3>
+          <p class="small-text">你剛剛已經完成這 5 年的人生事件。請先確認上方事件紀錄與目前身、心、財狀態，再進入人生規劃室配置保障。</p>
+        </div>
+        """, unsafe_allow_html=True)
+        if st.button("🛡️ 進入人生規劃室", use_container_width=True):
+            st.session_state.pending_planning = False
+            st.session_state.shop_mode = "normal"
+            st.session_state.page = "shop"
+            st.rerun()
+    else:
+        if st.button("⏩ 前進 5 年", use_container_width=True):
+            st.session_state.age += 5
+            old_health = st.session_state.health
+            old_mind = st.session_state.mind
+            old_wealth = st.session_state.wealth
+
+            event, h, m, w, tree_gain, effect_logs, defense = next_event(
+                st.session_state.age,
+                old_health,
+                old_mind,
+                old_wealth,
+                st.session_state.game_items
+            )
+
+            st.session_state.health = h
+            st.session_state.mind = m
+            st.session_state.wealth = w
+            st.session_state.tree += tree_gain
+            st.session_state.last_event = event["name"]
+            st.session_state.last_event_tag = event["tag"]
+
+            score_text = event_score_summary(old_health, old_mind, old_wealth, h, m, w)
+            add_log(f"{st.session_state.age}歲：{event['name']}｜{score_text}")
+
+            for e in effect_logs:
+                add_log(e)
+            if defense:
+                st.session_state.defense_notice = defense
+                add_log(defense)
+            elif event.get('severity','') == 'high':
+                st.session_state.defense_notice = f"🚨 缺乏防護網！「{event['name'].split('：')[0]}」造成嚴重打擊。"
+            if tree_gain:
+                add_log(f"健康水位良好，獲得小樹點 +{tree_gain}，目前小樹點 {st.session_state.tree}。")
+            if st.session_state.health<=0 or st.session_state.mind<=0 or st.session_state.wealth<=0 or st.session_state.age>=100:
+                st.session_state.page="result"
+            elif st.session_state.age % 10 == 5:
+                st.session_state.pending_planning = True
+            st.rerun()
 
 elif st.session_state.page == "shop":
     top_nav(); render_shop()
@@ -267,38 +306,11 @@ elif st.session_state.page == "result":
     with c1: stat_card("💪","身 Health",st.session_state.health,"最終健康狀態")
     with c2: stat_card("🧠","心 Mind",st.session_state.mind,"最終心理韌性")
     with c3: stat_card("💰","財 Wealth",st.session_state.wealth,"最終財務安全")
-    
     scores={"健康風險":st.session_state.health,"心理壓力":st.session_state.mind,"財務風險":st.session_state.wealth}
     weakest=min(scores,key=scores.get)
-    
-    beat_percent = clamp(int((st.session_state.health + st.session_state.mind + st.session_state.wealth) / 300 * 100) + random.randint(5, 15))
-    st.markdown(f"""
-    <div class="glass-card" style="text-align: center;">
-        <h3 style="color:#cbd5e1; margin-bottom: 5px;">🏆 全國同齡人存活榜</h3>
-        <div style="font-size: 22px;">您的百歲決策，成功擊敗了 <span style="font-size: 38px; color: #facc15; font-weight: 900;">{beat_percent}%</span> 的同世代玩家！</div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    col_chart1, col_chart2 = st.columns(2)
-    with col_chart1:
-        st.markdown('<div class="glass-card"><h2>📡 最終狀態雷達</h2>', unsafe_allow_html=True)
-        risk_chart()
-        st.markdown('</div>', unsafe_allow_html=True)
-    with col_chart2:
-        st.markdown('<div class="glass-card"><h2>📈 百歲人生軌跡走勢</h2>', unsafe_allow_html=True)
-        hist = st.session_state.history
-        fig_line = go.Figure()
-        fig_line.add_trace(go.Scatter(x=hist["age"], y=hist["health"], mode='lines+markers', name='身 Health', line=dict(color='#22c55e', width=3)))
-        fig_line.add_trace(go.Scatter(x=hist["age"], y=hist["mind"], mode='lines+markers', name='心 Mind', line=dict(color='#3b82f6', width=3)))
-        fig_line.add_trace(go.Scatter(x=hist["age"], y=hist["wealth"], mode='lines+markers', name='財 Wealth', line=dict(color='#facc15', width=3)))
-        fig_line.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font=dict(color="#f8fafc"), xaxis=dict(title="年齡 (歲)", gridcolor="rgba(255,255,255,.1)"), yaxis=dict(title="數值", range=[0, 105], gridcolor="rgba(255,255,255,.1)"), legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1), height=430, margin=dict(l=0, r=0, t=10, b=0))
-        st.plotly_chart(fig_line, use_container_width=True)
-        st.markdown('</div>', unsafe_allow_html=True)
-
     recs=recommend_products(st.session_state.health, st.session_state.mind, st.session_state.wealth, st.session_state.last_event_tag, st.session_state.game_items, limit=3)
     score = protection_score(st.session_state.game_items, st.session_state.health, st.session_state.mind, st.session_state.wealth)
     st.markdown(f"""<div class='protection-score'><div style='color:#cbd5e1;font-size:18px;'>你的國泰神盾防護力</div><span>{score}</span> / 100</div>""", unsafe_allow_html=True)
-    
     st.markdown('<div class="glass-card"><h2>🔍 你的主要風險痛點</h2>', unsafe_allow_html=True)
     st.write(f"你的最大弱點是：**{weakest}**")
     st.write("建議補強：" + "、".join([p['game_item'] for _,p,_ in recs]))
@@ -306,12 +318,10 @@ elif st.session_state.page == "result":
     for msg in insights:
         st.markdown(f"<div class='event-card'>🤖 {msg}</div>", unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
-    
     st.markdown('<div class="glass-card"><h2>🤖 AI 專屬人生復盤</h2><p class="small-text">讓 AI 分析你這段人生的決策軌跡，找出潛在盲點與轉機。</p>', unsafe_allow_html=True)
     if st.button("✨ 啟動 AI 深度復盤分析", type="primary", use_container_width=True):
-        render_ai_review(weakest, recs, scores)
+        render_ai_review(weakest, recs)
     st.markdown('</div>', unsafe_allow_html=True)
-    
     st.markdown('<div class="glass-card"><h2>📣 下一步：將戰略化為現實</h2><p class="small-text">這裡可作為 Demo 的名單收集與專屬規劃入口。</p></div>', unsafe_allow_html=True)
     with st.expander("🙋 聯絡專屬規劃師（Demo 表單）"):
         st.info("🛡️ Demo 隱私提示：此區塊僅示範安全對接流程，未實際送出個資。")
